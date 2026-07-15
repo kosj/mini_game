@@ -1,0 +1,13 @@
+{
+  "name": "mini-game",
+  "version": "1.0.0",
+  "description": "친구들과 즐기는 웹 미니게임 모음 (사다리 타기 등)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

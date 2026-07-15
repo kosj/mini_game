@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>미니게임</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f1f5f9;
+      --sub: #94a3b8;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px;
+    }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    p.desc { color: var(--sub); margin-bottom: 36px; }
+    .games {
+      display: grid;
+      gap: 16px;
+      width: 100%;
+      max-width: 560px;
+    }
+    a.game-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--card);
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 20px 24px;
+      text-decoration: none;
+      color: var(--text);
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    a.game-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .game-card .emoji { font-size: 2rem; }
+    .game-card .info h2 { font-size: 1.1rem; margin-bottom: 4px; }
+    .game-card .info p { font-size: 0.875rem; color: var(--sub); }
+    .game-card.soon { opacity: 0.45; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <h1>🎮 미니게임</h1>
+  <p class="desc">친구들과 함께 즐기는 간단한 웹 미니게임 모음</p>
+  <div class="games">
+    <a class="game-card" href="/ladder/">
+      <span class="emoji">🪜</span>
+      <span class="info">
+        <h2>사다리 타기</h2>
+        <p>초대 링크로 모여서 위치를 고르면, 모두 선택 시 자동으로 사다리가 타집니다.</p>
+      </span>
+    </a>
+    <a class="game-card soon" href="#">
+      <span class="emoji">🎲</span>
+      <span class="info">
+        <h2>준비 중...</h2>
+        <p>새로운 미니게임이 곧 추가됩니다.</p>
+      </span>
+    </a>
+  </div>
+</body>
+</html>
