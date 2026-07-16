@@ -9,8 +9,8 @@ const COLORS = [
   '#38bdf8', '#f472b6', '#4ade80', '#facc15', '#a78bfa', '#fb923c',
   '#2dd4bf', '#f87171', '#c084fc', '#a3e635', '#60a5fa', '#fbbf24',
 ];
-const PATH_STAGGER_MS = 1100; // i번째 참가자 경로 시작 간격
-const PATH_DURATION_MS = 900; // 경로 하나를 그리는 시간
+const PATH_STAGGER_MS = 2600; // i번째 참가자 경로 시작 간격
+const PATH_DURATION_MS = 2200; // 경로 하나를 그리는 시간
 
 // 브라우저(참가자) 식별자
 let clientId = localStorage.getItem('ladder-client-id');
