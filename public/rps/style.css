@@ -1,0 +1,232 @@
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --border: #334155;
+  --text: #f1f5f9;
+  --sub: #94a3b8;
+  --accent: #38bdf8;
+  --accent-dark: #0284c7;
+  --danger: #f87171;
+  --safe: #4ade80;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+}
+
+header { max-width: 640px; margin: 0 auto 20px; }
+header .home { color: var(--sub); text-decoration: none; font-size: 0.85rem; }
+header h1 { font-size: 1.6rem; margin-top: 6px; }
+
+main { max-width: 640px; margin: 0 auto; }
+
+.hidden { display: none !important; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+.card.center { text-align: center; }
+
+label { display: block; font-size: 0.85rem; color: var(--sub); margin: 18px 0 6px; }
+label:first-child { margin-top: 0; }
+
+input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 1rem;
+  color: var(--text);
+  background: #0b1220;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+}
+input[type="text"]:focus { border-color: var(--accent); }
+
+.mode-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mode-btn {
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--sub);
+  background: #0b1220;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.mode-btn.selected { color: var(--accent); border-color: var(--accent); }
+
+.count-row { display: flex; align-items: center; gap: 16px; }
+.count-btn {
+  width: 40px; height: 40px;
+  font-size: 1.3rem;
+  color: var(--text);
+  background: #0b1220;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.count-btn:hover { border-color: var(--accent); }
+#count-display { font-size: 1.2rem; font-weight: 700; min-width: 2ch; text-align: center; }
+
+button.primary, .link-btn {
+  display: block;
+  width: 100%;
+  margin-top: 22px;
+  padding: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #06202e;
+  background: var(--accent);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+button.primary:hover, .link-btn:hover { background: var(--accent-dark); color: #fff; }
+button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.error { color: var(--danger); font-size: 0.85rem; margin-top: 10px; min-height: 1.2em; }
+.hint { color: var(--sub); font-size: 0.85rem; margin-top: 10px; line-height: 1.5; }
+
+.purpose-label { color: var(--sub); font-size: 0.8rem; }
+#lobby-purpose, #game-purpose { font-size: 1.25rem; margin: 4px 0 8px; }
+.mode-tag { font-size: 0.85rem; color: var(--accent); margin-bottom: 14px; }
+
+.invite-box {
+  display: flex; align-items: center; gap: 8px;
+  background: #0b1220;
+  border: 1px dashed #475569;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.invite-box span {
+  flex: 1; font-size: 0.8rem; color: var(--sub);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.invite-box button {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: 0.85rem; font-weight: 600;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.invite-box button:hover { background: var(--accent); color: #06202e; }
+
+.join-row { display: flex; gap: 8px; }
+.join-row input { flex: 1; }
+.join-row button {
+  flex-shrink: 0;
+  padding: 0 20px;
+  font-size: 0.95rem; font-weight: 700;
+  color: #06202e;
+  background: var(--accent);
+  border: none; border-radius: 10px;
+  cursor: pointer;
+}
+
+.progress { margin: 20px 0 10px; font-weight: 600; }
+
+.player-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #0b1220;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.chip.me { border-color: var(--accent); color: var(--accent); }
+.chip.out { opacity: 0.4; text-decoration: line-through; }
+.chip.picked { border-color: #22c55e77; }
+.chip .st { font-size: 0.8rem; }
+
+/* ------ 게임 무대 ------ */
+.round-label { color: var(--sub); font-size: 0.9rem; margin-bottom: 14px; }
+
+.stage {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  min-height: 96px;
+  align-items: center;
+  padding: 10px 0;
+}
+.stage .fighter { text-align: center; width: 76px; }
+.stage .fighter .hand-emoji {
+  font-size: 3rem;
+  line-height: 1.2;
+  display: block;
+  transition: transform 0.2s;
+}
+.stage .fighter.shaking .hand-emoji { animation: shake 0.55s ease-in-out infinite; }
+.stage .fighter .nm {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--sub);
+  margin-top: 4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.stage .fighter.advance .hand-emoji { transform: scale(1.2); }
+.stage .fighter.advance .nm { color: var(--safe); font-weight: 700; }
+.stage .fighter.dropped { opacity: 0.35; }
+
+@keyframes shake {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(-12deg); }
+}
+
+.stage-msg {
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 800;
+  min-height: 1.6em;
+  margin: 8px 0 4px;
+}
+.stage-msg.chant { color: var(--accent); font-size: 1.7rem; }
+
+.hand-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 16px 0 6px;
+}
+.hand {
+  padding: 14px 6px 10px;
+  font-size: 2.2rem;
+  background: #0b1220;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.15s;
+}
+.hand span { display: block; font-size: 0.85rem; font-weight: 700; color: var(--sub); margin-top: 4px; }
+.hand:hover { transform: translateY(-2px); border-color: var(--accent); }
+.hand.selected { border-color: var(--accent); background: #38bdf81a; }
+.hand.selected span { color: var(--accent); }
+.hand:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.final-panel { text-align: center; margin-top: 18px; }
+.final-emoji { font-size: 4rem; }
+.final-panel h3 { font-size: 1.4rem; margin: 10px 0 4px; }

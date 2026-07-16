@@ -2,6 +2,7 @@
  * mini_game server
  * - 정적 파일 서빙 (public/)
  * - 사다리게임 API (/api/ladder/...)
+ * - 가위바위보 API (/api/rps/...)
  * - SSE 실시간 동기화 (방 상태가 바뀌면 참가자 전원에게 push)
  *
  * 외부 의존성 없음: `node server.js` 만으로 동작.
@@ -134,7 +135,12 @@ function computeMapping(n, ladder) {
 // -------------------------------------------------------------- room state
 
 function publicState(room) {
+  return room.game === 'rps' ? rpsPublicState(room) : ladderPublicState(room);
+}
+
+function ladderPublicState(room) {
   return {
+    game: 'ladder',
     id: room.id,
     purpose: room.purpose,
     size: room.size,
@@ -159,6 +165,7 @@ setInterval(() => {
   const now = Date.now();
   for (const [id, room] of rooms) {
     if (now - room.createdAt > ROOM_TTL_MS) {
+      if (room.timer) clearTimeout(room.timer);
       rooms.delete(id);
       const subs = subscribers.get(id);
       if (subs) {
@@ -176,6 +183,172 @@ setInterval(() => {
   }
 }, 25 * 1000).unref();
 
+// ------------------------------------------------------------ 가위바위보
+
+const RPS_MOVES = ['scissors', 'rock', 'paper'];
+const RPS_BEATS = { scissors: 'paper', rock: 'scissors', paper: 'rock' }; // key가 value를 이김
+const RPS_REVEAL_DELAY_MS = 3200; // "가위~ 바위~ 보!" 연출 시간
+const RPS_NEXT_ROUND_DELAY_MS = 4500; // 결과를 보여준 뒤 다음 라운드까지
+
+function rpsPublicState(room) {
+  return {
+    game: 'rps',
+    id: room.id,
+    purpose: room.purpose,
+    mode: room.mode, // win: 이긴 사람 뽑기 | lose: 진 사람 뽑기
+    size: room.size,
+    status: room.status, // waiting | picking | reveal | done
+    round: room.round,
+    players: room.players.map((p, i) => ({
+      name: p.name,
+      alive: p.alive,
+      picked: room.status === 'picking' ? room.picks[i] !== null : undefined,
+    })),
+    // reveal/done 단계에서만 이번 라운드 픽 공개
+    reveal:
+      room.status === 'reveal'
+        ? { picks: room.picks, outcome: room.outcome, revealAt: room.revealAt }
+        : null,
+    lastRound: room.lastRound, // 직전 라운드 기록 (다음 라운드 대기 중에도 표시)
+    winner: room.winner,
+  };
+}
+
+/** 이번 라운드 결과 계산: 무승부 여부와 다음 라운드 진출자 */
+function rpsOutcome(room) {
+  const aliveIdx = room.players.map((_, i) => i).filter((i) => room.players[i].alive);
+  const moves = new Set(aliveIdx.map((i) => room.picks[i]));
+  if (moves.size === 1 || moves.size === 3) {
+    return { tie: true, advancing: aliveIdx };
+  }
+  const [a, b] = [...moves];
+  const winningMove = RPS_BEATS[a] === b ? a : b;
+  // win 모드: 이긴 사람이 살아남아 최후 1인(승자)을 가림
+  // lose 모드: 이긴 사람은 빠지고, 진 사람끼리 계속해 최후 1인(걸린 사람)을 가림
+  const keepMove = room.mode === 'win' ? winningMove : RPS_BEATS[winningMove];
+  const advancing = aliveIdx.filter((i) => room.picks[i] === keepMove);
+  return { tie: false, winningMove, advancing };
+}
+
+/** reveal이 끝난 뒤 다음 라운드로 넘어가거나 게임을 종료 */
+function rpsAdvance(room) {
+  room.timer = null;
+  if (room.status !== 'reveal') return;
+  const { tie, advancing } = room.outcome;
+  room.lastRound = { round: room.round, picks: room.picks, outcome: room.outcome };
+  if (!tie && advancing.length === 1) {
+    room.status = 'done';
+    room.winner = advancing[0];
+  } else {
+    if (!tie) {
+      room.players.forEach((p, i) => {
+        p.alive = advancing.includes(i);
+      });
+    }
+    room.round += 1;
+    room.picks = new Array(room.size).fill(null);
+    room.outcome = null;
+    room.status = 'picking';
+  }
+  broadcast(room.id);
+}
+
+function rpsCreate(req, res) {
+  readBody(req)
+    .then((body) => {
+      const purpose = cleanText(body.purpose, 80);
+      const size = Number(body.size);
+      const mode = body.mode === 'lose' ? 'lose' : 'win';
+      if (!purpose) return json(res, 400, { error: '게임의 목적을 입력해주세요.' });
+      if (!Number.isInteger(size) || size < MIN_PLAYERS || size > MAX_PLAYERS) {
+        return json(res, 400, { error: `인원은 ${MIN_PLAYERS}~${MAX_PLAYERS}명이어야 합니다.` });
+      }
+      const room = {
+        game: 'rps',
+        id: makeRoomId(),
+        purpose,
+        mode,
+        size,
+        players: [], // {name, clientId, alive}
+        status: 'waiting',
+        round: 0,
+        picks: [],
+        outcome: null,
+        lastRound: null,
+        revealAt: null,
+        winner: null,
+        timer: null,
+        createdAt: Date.now(),
+      };
+      rooms.set(room.id, room);
+      json(res, 201, { roomId: room.id });
+    })
+    .catch((err) => json(res, 400, { error: err.message }));
+}
+
+function rpsJoin(req, res, room) {
+  readBody(req)
+    .then((body) => {
+      const name = cleanText(body.name, 16);
+      const clientId = cleanText(body.clientId, 64);
+      if (!name) return json(res, 400, { error: '이름을 입력해주세요.' });
+      if (!clientId) return json(res, 400, { error: 'clientId가 없습니다.' });
+
+      const existing = room.players.find((p) => p.clientId === clientId);
+      if (existing) return json(res, 200, { ok: true, state: publicState(room) });
+      if (room.status !== 'waiting') {
+        return json(res, 409, { error: '이미 게임이 시작되었습니다.' });
+      }
+      if (room.players.some((p) => p.name === name)) {
+        return json(res, 409, { error: '이미 사용 중인 이름입니다.' });
+      }
+      room.players.push({ name, clientId, alive: true });
+
+      // 정원이 차면 자동으로 1라운드 시작
+      if (room.players.length === room.size) {
+        room.status = 'picking';
+        room.round = 1;
+        room.picks = new Array(room.size).fill(null);
+      }
+      broadcast(room.id);
+      json(res, 200, { ok: true, state: publicState(room) });
+    })
+    .catch((err) => json(res, 400, { error: err.message }));
+}
+
+function rpsPick(req, res, room) {
+  readBody(req)
+    .then((body) => {
+      const clientId = cleanText(body.clientId, 64);
+      const move = body.move;
+      if (room.status !== 'picking') {
+        return json(res, 409, { error: '지금은 낼 수 없습니다.' });
+      }
+      if (!RPS_MOVES.includes(move)) return json(res, 400, { error: '잘못된 선택입니다.' });
+      const idx = room.players.findIndex((p) => p.clientId === clientId);
+      if (idx === -1) return json(res, 403, { error: '참가자가 아닙니다.' });
+      if (!room.players[idx].alive) return json(res, 409, { error: '이번 라운드 대상이 아닙니다.' });
+
+      room.picks[idx] = move; // 모두 내기 전까지는 변경 가능
+
+      // 생존자 전원이 내면 동시 공개
+      const allPicked = room.players.every((p, i) => !p.alive || room.picks[i] !== null);
+      if (allPicked) {
+        room.outcome = rpsOutcome(room);
+        room.status = 'reveal';
+        room.revealAt = Date.now() + RPS_REVEAL_DELAY_MS;
+        room.timer = setTimeout(
+          () => rpsAdvance(room),
+          RPS_REVEAL_DELAY_MS + RPS_NEXT_ROUND_DELAY_MS
+        );
+        room.timer.unref();
+      }
+      broadcast(room.id);
+      json(res, 200, { ok: true, state: publicState(room) });
+    })
+    .catch((err) => json(res, 400, { error: err.message }));
+}
+
 // -------------------------------------------------------------- API routes
 
 function handleCreateRoom(req, res) {
@@ -190,6 +363,7 @@ function handleCreateRoom(req, res) {
         return json(res, 400, { error: `결과 항목은 ${MIN_PLAYERS}~${MAX_PLAYERS}개여야 합니다.` });
       }
       const room = {
+        game: 'ladder',
         id: makeRoomId(),
         purpose,
         size: results.length,
@@ -267,18 +441,32 @@ function handleEvents(req, res, room) {
 }
 
 function handleApi(req, res, pathname) {
-  // POST /api/ladder/rooms
+  // POST /api/<game>/rooms
   if (pathname === '/api/ladder/rooms' && req.method === 'POST') {
     return handleCreateRoom(req, res);
   }
-  const match = pathname.match(/^\/api\/ladder\/rooms\/([A-Z2-9]{6})(\/(events|claim))?$/);
+  if (pathname === '/api/rps/rooms' && req.method === 'POST') {
+    return rpsCreate(req, res);
+  }
+  const match = pathname.match(/^\/api\/(ladder|rps)\/rooms\/([A-Z2-9]{6})(\/(events|claim|join|pick))?$/);
   if (!match) return json(res, 404, { error: 'not found' });
-  const room = rooms.get(match[1]);
-  if (!room) return json(res, 404, { error: '존재하지 않거나 만료된 방입니다.' });
+  const [, game, id, , action] = match;
+  const room = rooms.get(id);
+  if (!room || room.game !== game) {
+    return json(res, 404, { error: '존재하지 않거나 만료된 방입니다.' });
+  }
 
-  if (!match[3] && req.method === 'GET') return json(res, 200, publicState(room));
-  if (match[3] === 'claim' && req.method === 'POST') return handleClaim(req, res, room);
-  if (match[3] === 'events' && req.method === 'GET') return handleEvents(req, res, room);
+  if (!action && req.method === 'GET') return json(res, 200, publicState(room));
+  if (action === 'events' && req.method === 'GET') return handleEvents(req, res, room);
+  if (game === 'ladder' && action === 'claim' && req.method === 'POST') {
+    return handleClaim(req, res, room);
+  }
+  if (game === 'rps' && action === 'join' && req.method === 'POST') {
+    return rpsJoin(req, res, room);
+  }
+  if (game === 'rps' && action === 'pick' && req.method === 'POST') {
+    return rpsPick(req, res, room);
+  }
   return json(res, 405, { error: 'method not allowed' });
 }
 

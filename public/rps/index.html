@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>가위 바위 보</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✌️</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <a class="home" href="/">🎮 미니게임</a>
+    <h1>✌️ 가위 바위 보</h1>
+  </header>
+
+  <main>
+    <!-- 1. 방 만들기 -->
+    <section id="view-create" class="view hidden">
+      <div class="card">
+        <label for="purpose">무엇을 정하는 게임인가요?</label>
+        <input id="purpose" type="text" maxlength="80" placeholder="예) 설거지 당번 정하기" />
+
+        <label>뽑는 방식</label>
+        <div class="mode-row">
+          <button type="button" class="mode-btn selected" data-mode="lose">😱 진 사람 뽑기</button>
+          <button type="button" class="mode-btn" data-mode="win">🏆 이긴 사람 뽑기</button>
+        </div>
+        <p class="hint" id="mode-hint">끝까지 지는 한 명이 걸릴 때까지 라운드가 반복됩니다.</p>
+
+        <label for="count">참가 인원</label>
+        <div class="count-row">
+          <button type="button" class="count-btn" data-delta="-1">−</button>
+          <span id="count-display">4</span>
+          <button type="button" class="count-btn" data-delta="1">+</button>
+        </div>
+
+        <button id="btn-create" class="primary">게임 만들기</button>
+        <p id="create-error" class="error"></p>
+      </div>
+    </section>
+
+    <!-- 2. 대기실 -->
+    <section id="view-lobby" class="view hidden">
+      <div class="card">
+        <p class="purpose-label">이번 게임의 목적</p>
+        <h2 id="lobby-purpose"></h2>
+        <p id="lobby-mode" class="mode-tag"></p>
+
+        <div class="invite-box">
+          <span id="invite-link"></span>
+          <button id="btn-copy" type="button">복사</button>
+        </div>
+        <p class="hint">친구들에게 초대 링크를 공유하세요. 정원이 차면 자동으로 시작됩니다!</p>
+
+        <label for="my-name">내 이름</label>
+        <div class="join-row">
+          <input id="my-name" type="text" maxlength="16" placeholder="이름 입력" />
+          <button id="btn-join" type="button">참가하기</button>
+        </div>
+
+        <p id="lobby-progress" class="progress"></p>
+        <div id="player-list" class="player-list"></div>
+        <p id="lobby-error" class="error"></p>
+      </div>
+    </section>
+
+    <!-- 3. 게임 -->
+    <section id="view-game" class="view hidden">
+      <div class="card">
+        <h2 id="game-purpose"></h2>
+        <p id="round-label" class="round-label"></p>
+
+        <div id="stage" class="stage"></div>
+        <p id="stage-msg" class="stage-msg"></p>
+
+        <div id="hand-buttons" class="hand-buttons hidden">
+          <button type="button" class="hand" data-move="scissors">✌️<span>가위</span></button>
+          <button type="button" class="hand" data-move="rock">✊<span>바위</span></button>
+          <button type="button" class="hand" data-move="paper">🖐️<span>보</span></button>
+        </div>
+
+        <div id="player-status" class="player-list"></div>
+        <p id="game-error" class="error"></p>
+
+        <div id="final-panel" class="final-panel hidden">
+          <div id="final-emoji" class="final-emoji"></div>
+          <h3 id="final-text"></h3>
+          <p id="final-sub" class="hint"></p>
+          <a class="primary link-btn" href="/rps/">새 게임 만들기</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 방 없음 -->
+    <section id="view-notfound" class="view hidden">
+      <div class="card center">
+        <h2>😥 방을 찾을 수 없어요</h2>
+        <p class="hint">링크가 잘못되었거나 만료된 방입니다. (방은 24시간 동안 유지됩니다)</p>
+        <a class="primary link-btn" href="/rps/">새 게임 만들기</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
