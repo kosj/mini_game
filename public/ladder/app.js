@@ -263,12 +263,52 @@ function renderLabels(geo) {
   }
 }
 
+// ---- 진행 위치 자동 추적: 사다리가 화면보다 클 때(특히 모바일) 그려지는 지점을 따라 스크롤
+let followEnabled = true;
+let followControlReady = false;
+let followResumeTimer = null;
+
+function setupFollowControl() {
+  if (followControlReady) return;
+  followControlReady = true;
+  // 사용자가 직접 스크롤하면 자동 추적을 잠시 멈추고, 손을 떼면 다시 따라간다
+  const pause = () => {
+    followEnabled = false;
+    clearTimeout(followResumeTimer);
+    followResumeTimer = setTimeout(() => { followEnabled = true; }, 2500);
+  };
+  ['wheel', 'touchmove', 'mousedown'].forEach((ev) =>
+    window.addEventListener(ev, pause, { passive: true })
+  );
+}
+
+function followTip(svg, pt) {
+  const vb = svg.viewBox.baseVal;
+  const rect = svg.getBoundingClientRect();
+  if (!vb.width || !vb.height || !rect.width) return;
+  const x = rect.left + (pt.x / vb.width) * rect.width;
+  const y = rect.top + (pt.y / vb.height) * rect.height;
+
+  // 세로: 진행 지점이 화면 중앙 부근에 오도록 페이지를 부드럽게 스크롤
+  const dy = y - window.innerHeight * 0.45;
+  if (Math.abs(dy) > 6) window.scrollBy(0, dy * 0.18);
+
+  // 가로: 인원이 많아 카드에 좌우 스크롤이 생기면 진행 지점을 따라 이동
+  const scroller = svg.closest('.game-card');
+  if (scroller && scroller.scrollWidth > scroller.clientWidth + 1) {
+    const srect = scroller.getBoundingClientRect();
+    const dx = x - (srect.left + srect.width * 0.5);
+    if (Math.abs(dx) > 6) scroller.scrollLeft += dx * 0.18;
+  }
+}
+
 function animateLadder() {
   const geo = buildGeometry();
   const svg = $('#ladder-svg');
   svg.innerHTML = '';
   drawBaseLadder(svg, geo);
   renderLabels(geo);
+  setupFollowControl();
 
   const ns = 'http://www.w3.org/2000/svg';
   const paths = [];
@@ -294,16 +334,19 @@ function animateLadder() {
   function frame() {
     const now = Date.now();
     let done = true;
+    let tip = null; // 지금 그려지고 있는 경로의 끝점 (스크롤 추적용)
     paths.forEach((p, i) => {
       const t = (now - animStart - i * PATH_STAGGER_MS) / PATH_DURATION_MS;
       const progress = Math.max(0, Math.min(1, t));
       p.path.style.strokeDashoffset = p.len * (1 - progress);
+      if (progress > 0 && progress < 1) tip = p.path.getPointAtLength(p.len * progress);
       if (progress >= 1 && !p.revealed) {
         p.revealed = true;
         revealResult(i, p.end);
       }
       if (progress < 1) done = false;
     });
+    if (tip && followEnabled) followTip(svg, tip);
     if (!done) requestAnimationFrame(frame);
     else showResultPanel();
   }
@@ -330,7 +373,10 @@ function showResultPanel() {
     }">${escapeHtml(state.results[state.mapping[i]])}</span>`;
     list.appendChild(li);
   });
-  $('#result-panel').classList.remove('hidden');
+  const panel = $('#result-panel');
+  panel.classList.remove('hidden');
+  // 연출이 끝나면 결과 목록이 보이도록 스크롤
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
 }
 
 // ============================================================ 상태 동기화
